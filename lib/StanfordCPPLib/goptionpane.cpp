@@ -5,8 +5,6 @@
  * See goptionpane.h for documentation of each member.
  * 
  * @author Marty Stepp
- * @version 2015/07/05
- * - removed static global Platform variable, replaced by getPlatform as needed
  * @version 2014/10/26
  * - added showTextFileDialog
  * @version 2014/10/09
@@ -18,6 +16,8 @@
 
 #include "goptionpane.h"
 #include "platform.h"
+
+static Platform* pp = getPlatform();
 
 GOptionPane::GOptionPane() {
     // empty
@@ -34,7 +34,7 @@ GOptionPane::ConfirmResult GOptionPane::showConfirmDialog(std::string message, s
         title = "Select an option";
     }
     
-    int result = getPlatform()->goptionpane_showConfirmDialog(message, title, type);
+    int result = pp->goptionpane_showConfirmDialog(message, title, type);
     if (result == OK_OPTION || result == YES_OPTION) {
         // this is weird code because JOptionPane thinks of OK and Yes as the same,
         // and differentiates based on context of whether this is an OK/Cancel or Yes/No dialog
@@ -48,7 +48,7 @@ GOptionPane::ConfirmResult GOptionPane::showConfirmDialog(std::string message, s
 }
 
 std::string GOptionPane::showInputDialog(std::string message, std::string title) {
-    return getPlatform()->goptionpane_showInputDialog(message, title);
+    return pp->goptionpane_showInputDialog(message, title);
 }
 
 void GOptionPane::showMessageDialog(std::string message, std::string title, MessageType type) {
@@ -62,7 +62,7 @@ void GOptionPane::showMessageDialog(std::string message, std::string title, Mess
     if (title.empty()) {
         title = "Message";
     }
-    getPlatform()->goptionpane_showMessageDialog(message, title, type);
+    pp->goptionpane_showMessageDialog(message, title, type);
 }
 
 std::string GOptionPane::showOptionDialog(std::string message, const Vector<std::string>& options,
@@ -70,7 +70,7 @@ std::string GOptionPane::showOptionDialog(std::string message, const Vector<std:
     if (title.empty()) {
         title = "Select an option";
     }
-    int index = getPlatform()->goptionpane_showOptionDialog(message, title, options.toStlVector(), initiallySelected);
+    int index = pp->goptionpane_showOptionDialog(message, title, options.toStlVector(), initiallySelected);
     if (index == GOptionPane::InternalResult::CLOSED_OPTION
             || index < 0 || index >= options.size()) {
         return "";
@@ -83,5 +83,5 @@ void GOptionPane::showTextFileDialog(std::string message, std::string title, int
     if (title.empty()) {
         title = "Text file contents";
     }
-    getPlatform()->goptionpane_showTextFileDialog(message, title, rows, cols);
+    pp->goptionpane_showTextFileDialog(message, title, rows, cols);
 }

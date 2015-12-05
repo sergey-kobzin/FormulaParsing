@@ -1,16 +1,10 @@
-/*
- * Copyright (c) 2009, Fredrik Orderud
- * License: BSD licence (http://www.opensource.org/licenses/bsd-license.php)
- *
- * @version 2015/07/05
- * - replaced pragma once with ifndef/define for greater compatibility
- */
+/* Copyright (c) 2009, Fredrik Orderud
+   License: BSD licence (http://www.opensource.org/licenses/bsd-license.php) */
 
-#ifndef _stack_exception_h
-#define _stack_exception_h
+#pragma once
 #include <stdexcept>
 #include <string>
-#include "stacktrace/call_stack.h"
+#include <stacktrace/call_stack.hpp>
 
 namespace stacktrace {
 
@@ -64,5 +58,3 @@ typedef stack_exception<std::length_error>     stack_length_error;
 typedef stack_exception<std::out_of_range>     stack_out_of_range;
 
 } // namespace stacktrace
-
-#endif // _stack_exception_h

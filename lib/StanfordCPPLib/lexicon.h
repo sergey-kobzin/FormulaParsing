@@ -71,7 +71,6 @@ public:
      *</pre>
      */
     Lexicon();
-    Lexicon(std::istream& input);
     Lexicon(const std::string& filename);
 
     /*
@@ -92,16 +91,7 @@ public:
      * Returns true if the word was added successfully to the lexicon.
      */
     bool add(const std::string& word);
-    
-    /*
-     * Method: addWordsFromFile
-     * Usage: lex.addWordsFromFile(input);
-     * --------------------------------------
-     * Reads the given input stream and adds all of its words to the lexicon.
-     * Each word from the stream is converted to lowercase before adding it.
-     */
-    void addWordsFromFile(std::istream& input);
-    
+
     /*
      * Method: addWordsFromFile
      * Usage: lex.addWordsFromFile(filename);
@@ -317,9 +307,6 @@ private:
     bool containsHelper(TrieNode* node, const std::string& word, bool isPrefix) const;
     void deepCopy(const Lexicon& src);
     void deleteTree(TrieNode* node);
-    bool isDAWGFile(std::istream& input) const;
-    bool isDAWGFile(const std::string& filename) const;
-    void readBinaryFile(std::istream& input);
     void readBinaryFile(const std::string& filename);
     bool removeHelper(TrieNode*& node, const std::string& word, const std::string& originalWord, bool isPrefix);
     void removeSubtreeHelper(TrieNode*& node, const std::string& originalWord);

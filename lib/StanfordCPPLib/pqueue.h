@@ -4,18 +4,6 @@
  * This file exports the <code>PriorityQueue</code> class, a
  * collection in which values are processed in priority order.
  * 
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
- * @version 2015/06/22
- * - added optional compiler flag PQUEUE_PRINT_IN_HEAP_ORDER to indicate
- *   that PQ should be printed in heap-internal order rather than sorted order
- * - added optional compiler flag PQUEUE_ALLOW_HEAP_ACCESS and corresponding
- *   semi-private methods to access value/priority at a given index
- *   (wanted internally for some testing and for practice exam problems;
- *    not meant to be called explicitly by students or most clients)
- * @version 2014/12/04
- * - moved comparison operators <, >=, etc. behind a (default-disabled)
- *   compiler flag because implementation is inefficient
  * @version 2014/11/13
  * - added comparison operators <, >=, etc.
  * - added add() method as synonym for enqueue()
@@ -192,13 +180,6 @@ public:
     std::string toString() const;
     
     /*
-     * Operator: <<
-     * Prints the priority queue to the given output stream.
-     */
-    template <typename T>
-    friend std::ostream& operator <<(std::ostream& os, const PriorityQueue<T>& pq);
-    
-    /*
      * Operators: ==, !=
      * Usage: if (pq1 == pq2) ...
      * --------------------------
@@ -209,7 +190,6 @@ public:
     bool operator ==(const PriorityQueue& pq2) const;
     bool operator !=(const PriorityQueue& pq2) const;
 
-#ifdef PQUEUE_COMPARISON_OPERATORS_ENABLED
     /*
      * Operators: <, <=, >, >=
      * Usage: if (pq1 < pq2) ...
@@ -222,7 +202,6 @@ public:
     bool operator <=(const PriorityQueue& pq2) const;
     bool operator >(const PriorityQueue& pq2) const;
     bool operator >=(const PriorityQueue& pq2) const;
-#endif // PQUEUE_COMPARISON_OPERATORS_ENABLED
 
     /* Private section */
 
@@ -254,9 +233,7 @@ private:
 
     /* Private function prototypes */
     const HeapEntry& heapGet(int index) const;
-#ifdef PQUEUE_COMPARISON_OPERATORS_ENABLED
     int pqCompare(const PriorityQueue& other) const;
-#endif // PQUEUE_COMPARISON_OPERATORS_ENABLED
     bool takesPriority(int i1, int i2);
     void swapHeapEntries(int i1, int i2);
 
@@ -363,16 +340,8 @@ private:
         return pq_iterator(*this, /* end */ true);
     }
     
-public:
-    /* private implentation section */
-    
     template <typename Collection>
     friend int compare::compare(const Collection& pq1, const Collection& pq2);
-
-#ifdef PQUEUE_ALLOW_HEAP_ACCESS
-    const ValueType& __getValueFromHeap(int index) const;
-    double __getPriorityFromHeap(int index) const;
-#endif // PQUEUE_ALLOW_HEAP_ACCESS
 };
 
 template <typename ValueType>
@@ -593,7 +562,6 @@ PriorityQueue<ValueType>::heapGet(int index) const {
     return heap[index];
 }
 
-#ifdef PQUEUE_COMPARISON_OPERATORS_ENABLED
 /*
  * Implementation note: Due to the complexity and unpredictable heap ordering of the elements,
  * this function sadly makes a deep copy of both PQs for comparing.
@@ -633,7 +601,7 @@ int PriorityQueue<ValueType>::pqCompare(const PriorityQueue& pq2) const {
         return 0;
     }
 }
-#endif // PQUEUE_COMPARISON_OPERATORS_ENABLED
+
 
 template <typename ValueType>
 void PriorityQueue<ValueType>::swapHeapEntries(int i1, int i2) {
@@ -663,7 +631,6 @@ bool PriorityQueue<ValueType>::operator !=(const PriorityQueue& pq2) const {
     return !equals(pq2);
 }
 
-#ifdef PQUEUE_COMPARISON_OPERATORS_ENABLED
 template <typename ValueType>
 bool PriorityQueue<ValueType>::operator <(const PriorityQueue& pq2) const {
     return pqCompare(pq2) < 0;
@@ -683,7 +650,6 @@ template <typename ValueType>
 bool PriorityQueue<ValueType>::operator >=(const PriorityQueue& pq2) const {
     return pqCompare(pq2) >= 0;
 }
-#endif // PQUEUE_COMPARISON_OPERATORS_ENABLED
 
 /*
  * Template hash function for hash sets.
@@ -693,54 +659,29 @@ template <typename T>
 int hashCode(const PriorityQueue<T>& pq) {
     // (slow, memory-inefficient) implementation: copy pq, dequeue all, and hash together
     PriorityQueue<T> backup = pq;
-    int code = hashSeed();
+    int code = HASH_SEED;
     while (!backup.isEmpty()) {
-        code = hashMultiplier() * code + hashCode(backup.peek());
-        code = hashMultiplier() * code + hashCode(backup.peekPriority());
+        code = HASH_MULTIPLIER * code + hashCode(backup.peek());
+        code = HASH_MULTIPLIER * code + hashCode(backup.peekPriority());
         backup.dequeue();
     }
-    return int(code & hashMask());
+    return int(code & HASH_MASK);
 }
-
-#ifdef PQUEUE_ALLOW_HEAP_ACCESS
-template <typename ValueType>
-const ValueType& PriorityQueue<ValueType>::__getValueFromHeap(int index) const {
-    return heap[index].value;
-}
-
-template <typename ValueType>
-double PriorityQueue<ValueType>::__getPriorityFromHeap(int index) const {
-    return heap[index].priority;
-}
-#endif // PQUEUE_ALLOW_HEAP_ACCESS
 
 template <typename ValueType>
 std::ostream& operator <<(std::ostream& os,
                           const PriorityQueue<ValueType>& pq) {
     os << "{";
-
-#ifdef PQUEUE_PRINT_IN_HEAP_ORDER
-    // faster implementation: print in heap order
-    // (only downside: doesn't print in 'sorted' priority order,
-    //  which might confuse student client)
-    for (int i = 0, len = pq.size(); i < len; i++) {
-        if (i > 0) {
-            os << ", ";
-        }
-        os << pq.heap[i].priority << ":";
-        writeGenericValue(os, pq.heap[i].value, true);
-    }
-#else
-    // (default) slow, memory-inefficient implementation: copy pq and print
+    // (slow, memory-inefficient) implementation: copy pq and print
     PriorityQueue<ValueType> copy = pq;
-    for (int i = 0, len = pq.size(); i < len; i++) {
+    int len = pq.size();
+    for (int i = 0; i < len; i++) {
         if (i > 0) {
             os << ", ";
         }
         os << copy.peekPriority() << ":";
         writeGenericValue(os, copy.dequeue(), true);
     }
-#endif
     return os << "}";
 }
 

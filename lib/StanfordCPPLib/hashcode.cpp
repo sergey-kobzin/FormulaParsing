@@ -1,29 +1,8 @@
-/*
- * File: hashcode.cpp
- * ------------------
- * This file implements the interface declared in hashcode.h.
- * 
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
- */
-
 #include "hashcode.h"
 
-static const int HASH_SEED = 5381;               // Starting point for first cycle
-static const int HASH_MULTIPLIER = 33;           // Multiplier for each cycle
-static const int HASH_MASK = unsigned(-1) >> 1;  // All 1 bits except the sign
-
-int hashSeed() {
-    return HASH_SEED;
-}
-
-int hashMultiplier() {
-    return HASH_MULTIPLIER;
-}
-
-int hashMask() {
-    return HASH_MASK;
-}
+const int HASH_SEED = 5381;               // Starting point for first cycle
+const int HASH_MULTIPLIER = 33;           // Multiplier for each cycle
+const int HASH_MASK = unsigned(-1) >> 1;  // All 1 bits except the sign
 
 /*
  * Implementation notes: hashCode

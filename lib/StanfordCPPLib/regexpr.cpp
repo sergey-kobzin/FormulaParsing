@@ -5,8 +5,6 @@
  * See regexpr.h for documentation of each function.
  *
  * @author Marty Stepp
- * @version 2015/07/05
- * - removed static global Platform variable, replaced by getPlatform as needed
  * @version 2014/10/14
  * - removed regexMatchCountWithLines for simplicity
  * 2014/10/08
@@ -17,14 +15,16 @@
 #include "regexpr.h"
 #include "platform.h"
 
+static Platform *pp = getPlatform();
+
 bool regexMatch(std::string s, std::string regexp) {
-    return getPlatform()->regex_match(s, regexp);
+    return pp->regex_match(s, regexp);
 }
 
 int regexMatchCount(std::string s, std::string regexp) {
-    return getPlatform()->regex_matchCount(s, regexp);
+    return pp->regex_matchCount(s, regexp);
 }
 
 std::string regexReplace(std::string s, std::string regexp, std::string replacement, int limit) {
-    return getPlatform()->regex_replace(s, regexp, replacement, limit);
+    return pp->regex_replace(s, regexp, replacement, limit);
 }

@@ -15,8 +15,6 @@
  * The DAWG builder code is quite a bit more intricate, see Julie Zelenski
  * if you need it.
  * 
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
  * @version 2014/11/13
  * - added comparison operators <, >=, etc.
  * - added hashCode function
@@ -61,12 +59,6 @@ DawgLexicon::DawgLexicon() {
     numEdges = numDawgWords = 0;
 }
 
-DawgLexicon::DawgLexicon(std::istream& input) {
-    edges = start = NULL;
-    numEdges = numDawgWords = 0;
-    addWordsFromFile(input);
-}
-
 DawgLexicon::DawgLexicon(const std::string& filename) {
     edges = start = NULL;
     numEdges = numDawgWords = 0;
@@ -93,38 +85,27 @@ void DawgLexicon::add(const std::string& word) {
  * Check for DAWG in first 4 to identify as special binary format,
  * otherwise assume ASCII, one word per line
  */
-void DawgLexicon::addWordsFromFile(std::istream& input) {
+void DawgLexicon::addWordsFromFile(const std::string& filename) {
     char firstFour[4], expected[] = "DAWG";
-    if (input.fail()) {
-        error("DawgLexicon::addWordsFromFile: Couldn't read input");
+    std::ifstream istr(filename.c_str());
+    if (istr.fail()) {
+        error("DawgLexicon::addWordsFromFile: Couldn't open lexicon file " + filename);
     }
-    input.read(firstFour, 4);
+    istr.read(firstFour, 4);
     if (strncmp(firstFour, expected, 4) == 0) {
         if (otherWords.size() != 0) {
             error("DawgLexicon::addWordsFromFile: Binary files require an empty lexicon");
         }
-        readBinaryFile(input);
+        readBinaryFile(filename);
     } else {
         // plain text file
-        input.seekg(0);
+        istr.seekg(0);
         std::string line;
-        while (getline(input, line)) {
+        while (getline(istr, line)) {
             add(line);
         }
+        istr.close();
     }
-}
-
-/*
- * Check for DAWG in first 4 to identify as special binary format,
- * otherwise assume ASCII, one word per line
- */
-void DawgLexicon::addWordsFromFile(const std::string& filename) {
-    std::ifstream input(filename.c_str());
-    if (input.fail()) {
-        error("DawgLexicon::addWordsFromFile: Couldn't open lexicon file " + filename);
-    }
-    addWordsFromFile(input);
-    input.close();
 }
 
 void DawgLexicon::clear() {
@@ -286,28 +267,34 @@ DawgLexicon::Edge* DawgLexicon::findEdgeForChar(Edge* children, char ch) const {
  * The binary lexicon file format must follow this pattern:
  * DAWG:<startnode index>:<num bytes>:<num bytes block of edge data>
  */
-void DawgLexicon::readBinaryFile(std::istream& input) {
+void DawgLexicon::readBinaryFile(const std::string& filename) {
     long startIndex, numBytes;
     char firstFour[4], expected[] = "DAWG";
-    if (input.fail()) {
-        error("DawgLexicon::addWordsFromFile: Couldn't read input");
+#ifdef _foreachpatch_h
+    std::ifstream istr(filename.c_str(), __IOS_IN__ | __IOS_BINARY__);
+#else
+    std::ifstream istr(filename.c_str(), std::ios::in | std::ios::binary);
+#endif // _foreachpatch_h
+    
+    if (istr.fail()) {
+        error("DawgLexicon::addWordsFromFile: Couldn't open lexicon file " + filename);
     }
-    input.read(firstFour, 4);
-    input.get();
-    input >> startIndex;
-    input.get();
-    input >> numBytes;
-    input.get();
-    if (input.fail() || strncmp(firstFour, expected, 4) != 0
+    istr.read(firstFour, 4);
+    istr.get();
+    istr >> startIndex;
+    istr.get();
+    istr >> numBytes;
+    istr.get();
+    if (istr.fail() || strncmp(firstFour, expected, 4) != 0
             || startIndex < 0 || numBytes < 0) {
-        error("DawgLexicon::addWordsFromFile: Improperly formed lexicon file");
+        error("DawgLexicon::addWordsFromFile: Improperly formed lexicon file " + filename);
     }
     numEdges = numBytes / sizeof(Edge);
     edges = new Edge[numEdges];
     start = &edges[startIndex];
-    input.read((char*) edges, numBytes);
-    if (input.fail() && !input.eof()) {
-        error("DawgLexicon::addWordsFromFile: Improperly formed lexicon file");
+    istr.read((char*) edges, numBytes);
+    if (istr.fail() && !istr.eof()) {
+        error("DawgLexicon::addWordsFromFile: Improperly formed lexicon file " + filename);
     }
 
 #if defined(BYTE_ORDER) && BYTE_ORDER == LITTLE_ENDIAN
@@ -317,26 +304,8 @@ void DawgLexicon::readBinaryFile(std::istream& input) {
     }
 #endif
 
+    istr.close();
     numDawgWords = countDawgWords(start);
-}
-
-/*
- * Implementation notes: readBinaryFile
- * ------------------------------------
- * The binary lexicon file format must follow this pattern:
- * DAWG:<startnode index>:<num bytes>:<num bytes block of edge data>
- */
-void DawgLexicon::readBinaryFile(const std::string& filename) {
-#ifdef _foreachpatch_h
-    std::ifstream input(filename.c_str(), __IOS_IN__ | __IOS_BINARY__);
-#else
-    std::ifstream input(filename.c_str(), std::ios::in | std::ios::binary);
-#endif // _foreachpatch_h
-    if (input.fail()) {
-        error("DawgLexicon::addWordsFromFile: Couldn't open lexicon file " + filename);
-    }
-    readBinaryFile(input);
-    input.close();
 }
 
 /*
@@ -427,11 +396,11 @@ std::ostream& operator <<(std::ostream& out, const DawgLexicon& lex) {
 }
 
 int hashCode(const DawgLexicon& lex) {
-    int code = hashSeed();
+    int code = HASH_SEED;
     for (std::string n : lex) {
-        code = hashMultiplier() * code + hashCode(n);
+        code = HASH_MULTIPLIER * code + hashCode(n);
     }
-    return int(code & hashMask());
+    return int(code & HASH_MASK);
 }
 
 /*

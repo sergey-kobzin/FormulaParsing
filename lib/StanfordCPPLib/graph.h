@@ -5,8 +5,6 @@
  * to represent <b><i>graphs,</i></b> which consist of a set of
  * <b><i>nodes</i></b> (vertices) and a set of <b><i>arcs</i></b> (edges).
  * 
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
  * @version 2014/11/13
  * - added iterator begin(), end() support so that students can directly
  *   for-each over the vertices of a graph.
@@ -1143,15 +1141,15 @@ std::istream& operator >>(std::istream& is, Graph<NodeType, ArcType>& g) {
  */
 template <typename NodeType, typename ArcType>
 int hashCode(const Graph<NodeType, ArcType>& graph) {
-    int code = hashSeed();
+    int code = HASH_SEED;
     for (NodeType* node : graph) {
-        code = hashMultiplier() * code + hashCode(node->name);
+        code = HASH_MULTIPLIER * code + hashCode(node->name);
     }
     for (ArcType* arc : graph.getArcSet()) {
-        code = hashMultiplier() * code + hashCode(arc->start);
-        code = hashMultiplier() * code + hashCode(arc->finish);
+        code = HASH_MULTIPLIER * code + hashCode(arc->start);
+        code = HASH_MULTIPLIER * code + hashCode(arc->finish);
     }
-    return (code & hashMask());
+    return (code & HASH_MASK);
 }
 
 #endif

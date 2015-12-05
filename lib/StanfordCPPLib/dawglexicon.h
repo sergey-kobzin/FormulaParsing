@@ -76,7 +76,6 @@ public:
      *</pre>
      */
     DawgLexicon();
-    DawgLexicon(std::istream& input);
     DawgLexicon(const std::string& filename);
 
     /*
@@ -93,14 +92,6 @@ public:
      * Adds the specified word to the lexicon.
      */
     void add(const std::string& word);
-    
-    /*
-     * Method: addWordsFromFile
-     * Usage: lex.addWordsFromFile(input);
-     * -----------------------------------
-     * Reads the input stream and adds all of its words to the lexicon.
-     */
-    void addWordsFromFile(std::istream& input);
     
     /*
      * Method: addWordsFromFile
@@ -399,7 +390,6 @@ public:
 private:
     Edge* findEdgeForChar(Edge* children, char ch) const;
     Edge* traceToLastEdge(const std::string& s) const;
-    void readBinaryFile(std::istream& input);
     void readBinaryFile(const std::string& filename);
     void deepCopy(const DawgLexicon& src);
     int countDawgWords(Edge* start) const;

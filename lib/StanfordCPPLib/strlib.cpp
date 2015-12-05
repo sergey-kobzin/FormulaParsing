@@ -3,12 +3,6 @@
  * ----------------
  * This file implements the strlib.h interface.
  * 
- * @version 2015/08/02
- * - added htmlEncode/Decode functions (not 100% perfect but works for common cases)
- * @version 2015/06/19
- * - slight bug fix to make stringToInteger functions compile with int radix
- * @version 2015/05/22
- * - slight bug fix in stringToBool function
  * @version 2014/10/31
  * - fixed infinite loop bug in stringReplace function
  * @version 2014/10/19
@@ -71,24 +65,6 @@ bool equalsIgnoreCase(const std::string& s1, const std::string& s2) {
     return true;
 }
 
-std::string htmlDecode(const std::string& s) {
-    std::string result = s;
-    stringReplaceInPlace(result, "&lt;", "<");
-    stringReplaceInPlace(result, "&gt;", ">");
-    stringReplaceInPlace(result, "&quot;", "\"");
-    stringReplaceInPlace(result, "&amp;", "&");
-    return result;
-}
-
-std::string htmlEncode(const std::string& s) {
-    std::string result = s;
-    stringReplaceInPlace(result, "&", "&amp;");
-    stringReplaceInPlace(result, "<", "&lt;");
-    stringReplaceInPlace(result, ">", "&gt;");
-    stringReplaceInPlace(result, "\"", "&quot;");
-    return result;
-}
-
 /*
  * Implementation notes: numeric conversion
  * ----------------------------------------
@@ -137,38 +113,31 @@ bool stringIsDouble(const std::string& str) {
     return stringIsReal(str);
 }
 
-bool stringIsInteger(const std::string& str, int radix) {
-    std::istringstream stream(trim(str));
-    stream >> std::setbase(radix);
+bool stringIsInteger(const std::string& str) {
+    std::istringstream stream(str);
     int value;
-    stream >> value;
+    stream >> value >> std::ws;
     return !(stream.fail() || !stream.eof());
 }
 
-bool stringIsLong(const std::string& str, int radix) {
-    std::istringstream stream(trim(str));
-    stream >> std::setbase(radix);
+bool stringIsLong(const std::string& str) {
+    std::istringstream stream(str);
     long value;
-    stream >> value;
+    stream >> value >> std::ws;
     return !(stream.fail() || !stream.eof());
 }
 
 bool stringIsReal(const std::string& str) {
-    std::istringstream stream(trim(str));
+    std::istringstream stream(str);
     double value;
-    stream >> value;
+    stream >> value >> std::ws;
     return !(stream.fail() || !stream.eof());
 }
 
 bool stringToBool(const std::string& str) {
-    std::istringstream stream(trim(str));
-    if (str == "true" || str == "1") {
-        return true;
-    } else if (str == "false" || str == "0") {
-        return false;
-    }
+    std::istringstream stream(str);
     bool value;
-    stream >> std::boolalpha >> value;
+    stream >> std::boolalpha >> value >> std::ws;
     if (stream.fail() || !stream.eof()) {
         error("stringToBool: Illegal bool format (" + str + ")");
     }
@@ -187,32 +156,30 @@ double stringToDouble(const std::string& str) {
     return stringToReal(str);
 }
 
-int stringToInteger(const std::string& str, int radix) {
-    std::istringstream stream(trim(str));
-    stream >> std::setbase(radix);
+int stringToInteger(const std::string& str) {
+    std::istringstream stream(str);
     int value;
-    stream >> value;
+    stream >> value >> std::ws;
     if (stream.fail() || !stream.eof()) {
         error("stringToInteger: Illegal integer format (" + str + ")");
     }
     return value;
 }
 
-long stringToLong(const std::string& str, int radix) {
-    std::istringstream stream(trim(str));
-    stream >> std::setbase(radix);
+long stringToLong(const std::string& str) {
+    std::istringstream stream(str);
     long value;
-    stream >> value;
+    stream >> value >> std::ws;
     if (stream.fail() || !stream.eof()) {
-        error("stringToLong: Illegal long format (" + str + ")");
+        error("stringToInteger: Illegal long format (" + str + ")");
     }
     return value;
 }
 
 double stringToReal(const std::string& str) {
-    std::istringstream stream(trim(str));
+    std::istringstream stream(str);
     double value;
-    stream >> value;
+    stream >> value >> std::ws;
     if (stream.fail() || !stream.eof()) {
         error("stringToReal: Illegal floating-point format (" + str + ")");
     }

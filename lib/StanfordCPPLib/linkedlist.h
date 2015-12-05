@@ -5,8 +5,6 @@
  * implementation of a doubly-linked list of objects and provides the same
  * public interface of members as the <code>LinkedList</code> class.
  *
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
  * @version 2014/11/13
  * - added comparison operators <, >=, etc.
  * - added template hashCode function
@@ -841,27 +839,11 @@ std::istream& operator>>(std::istream& is, LinkedList<ValueType>& list) {
  */
 template <typename T>
 int hashCode(const LinkedList<T>& list) {
-    int code = hashSeed();
+    int code = HASH_SEED;
     for (T element : list) {
-        code = hashMultiplier() * code + hashCode(element);
+        code = HASH_MULTIPLIER * code + hashCode(element);
     }
-    return int(code & hashMask());
-}
-
-/*
- * Function: randomElement
- * Usage: element = randomElement(list);
- * -------------------------------------
- * Returns a randomly chosen element of the given list.
- * Throws an error if the list is empty.
- */
-template <typename T>
-const T& randomElement(const LinkedList<T>& list) {
-    if (list.isEmpty()) {
-        error("randomElement: empty list was passed");
-    }
-    int index = randomInteger(0, list.size() - 1);
-    return list[index];
+    return int(code & HASH_MASK);
 }
 
 /*

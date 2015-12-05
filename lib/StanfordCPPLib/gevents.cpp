@@ -5,8 +5,6 @@
  * in the gevents.h interface.  The actual functions for receiving events
  * from the environment are implemented in the platform package.
  * 
- * @version 2015/07/05
- * - removed static global Platform variable, replaced by getPlatform as needed
  * @version 2014/10/08
  * - removed 'using namespace' statement
  */
@@ -31,6 +29,10 @@
 #include "gtypes.h"
 #include "map.h"
 #include "platform.h"
+
+/* Global variables */
+
+static Platform *pp = getPlatform();
 
 /* Implementation of GEvent class */
 
@@ -348,10 +350,10 @@ GMouseEvent waitForClick() {
 }
 
 GEvent waitForEvent(int mask) {
-    return getPlatform()->gevent_waitForEvent(mask);
+    return pp->gevent_waitForEvent(mask);
 }
 
 GEvent getNextEvent(int mask) {
-    return getPlatform()->gevent_getNextEvent(mask);
+    return pp->gevent_getNextEvent(mask);
 }
 

@@ -4,8 +4,6 @@
  * This file exports the <code>HashSet</code> class, which
  * implements an efficient abstraction for storing sets of values.
  * 
- * @version 2015/07/05
- * - using global hashing functions rather than global variables
  * @version 2014/11/13
  * - added template hashCode function
  * @version 2014/10/10
@@ -666,37 +664,11 @@ std::istream& operator >>(std::istream& is, HashSet<ValueType>& set) {
  */
 template <typename T>
 int hashCode(const HashSet<T>& s) {
-    int code = hashSeed();
+    int code = HASH_SEED;
     for (T n : s) {
-        code = hashMultiplier() * code + hashCode(n);
+        code = HASH_MULTIPLIER * code + hashCode(n);
     }
-    return int(code & hashMask());
-}
-
-/*
- * Function: randomElement
- * Usage: element = randomElement(set);
- * ------------------------------------
- * Returns a randomly chosen element of the given set.
- * Throws an error if the set is empty.
- */
-template <typename T>
-const T& randomElement(const HashSet<T>& set) {
-    if (set.isEmpty()) {
-        error("randomElement: empty hash set was passed");
-    }
-    int index = randomInteger(0, set.size() - 1);
-    int i = 0;
-    for (const T& element : set) {
-        if (i == index) {
-            return element;
-        }
-        i++;
-    }
-    
-    // this code will never be reached
-    static T unused = set.first();
-    return unused;
+    return int(code & HASH_MASK);
 }
 
 #endif
