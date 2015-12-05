@@ -10,11 +10,10 @@
 # - re-open and "Configure" your project again.
 #
 # @author Marty Stepp, Reid Watson, Rasmus Rygaard, Jess Fisher, etc.
-# @version 2014/11/25
-# - changed warnings to use QMAKE_CXXFLAGS_WARN_ON variable (ESR)
-# - removed warnings for unused-parameter (ESR)
-# - changed console font size to 18 (ESR)
-#
+# @version 2015/04/09
+# - decreased Mac stack size to avoid sporatic crashes on Mac systems
+# @version 2014/11/29
+# - added pthread library on Mac/Linux for running each test in its own thread
 # @version 2014/11/13
 # - fixes related to generating stack traces
 # - support for putting testing files in a src/test/ folder (used in development)
@@ -56,11 +55,11 @@ win32 {
 # (student's source code can be put into project root, or src/ subfolder)
 SOURCES += $$PWD/lib/StanfordCPPLib/*.cpp
 SOURCES += $$PWD/lib/StanfordCPPLib/stacktrace/*.cpp
-exists($$PWD/src/test/*.cpp) {
-    SOURCES += $$PWD/src/test/*.cpp
-}
 exists($$PWD/src/*.cpp) {
     SOURCES += $$PWD/src/*.cpp
+}
+exists($$PWD/src/test/*.cpp) {
+    SOURCES += $$PWD/src/test/*.cpp
 }
 exists($$PWD/*.cpp) {
     SOURCES += $$PWD/*.cpp
@@ -83,15 +82,14 @@ exists($$PWD/*.h) {
 # (In general, many warnings/errors are enabled to tighten compile-time checking.
 # A few overly pedantic/confusing errors are turned off for simplicity.)
 QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS_WARN_ON += -Wall
-QMAKE_CXXFLAGS_WARN_ON += -Wextra
-QMAKE_CXXFLAGS_WARN_ON += -Wreturn-type
-QMAKE_CXXFLAGS_WARN_ON += -Werror=return-type
-QMAKE_CXXFLAGS_WARN_ON += -Wunreachable-code
-QMAKE_CXXFLAGS_WARN_ON += -Wno-missing-field-initializers
-QMAKE_CXXFLAGS_WARN_ON += -Wno-sign-compare
-QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter
-QMAKE_CXXFLAGS_WARN_ON += -Wno-write-strings
+QMAKE_CXXFLAGS += -Wall
+QMAKE_CXXFLAGS += -Wextra
+QMAKE_CXXFLAGS += -Wreturn-type
+QMAKE_CXXFLAGS += -Werror=return-type
+QMAKE_CXXFLAGS += -Wunreachable-code
+QMAKE_CXXFLAGS += -Wno-missing-field-initializers
+QMAKE_CXXFLAGS += -Wno-sign-compare
+QMAKE_CXXFLAGS += -Wno-write-strings
 
 unix:!macx {
     QMAKE_CXXFLAGS += -rdynamic
@@ -110,11 +108,11 @@ win32 {
     QMAKE_LFLAGS += -Wl,--stack,536870912
     LIBS += -lDbghelp
     LIBS += -lbfd
-#    LIBS += -liberty
+    #LIBS += -liberty
     LIBS += -limagehlp
 }
 macx {
-    QMAKE_LFLAGS += -Wl,-stack_size,0x20000000
+    #QMAKE_LFLAGS += -Wl,-stack_size,0x2000000
 }
 
 # set up flags used internally by the Stanford C++ libraries
@@ -122,7 +120,7 @@ DEFINES += SPL_CONSOLE_X=999999
 DEFINES += SPL_CONSOLE_Y=999999
 DEFINES += SPL_CONSOLE_WIDTH=750
 DEFINES += SPL_CONSOLE_HEIGHT=500
-DEFINES += SPL_CONSOLE_FONTSIZE=18
+DEFINES += SPL_CONSOLE_FONTSIZE=14
 DEFINES += SPL_CONSOLE_ECHO
 DEFINES += SPL_CONSOLE_EXIT_ON_CLOSE
 DEFINES += SPL_VERIFY_JAVA_BACKEND_VERSION
@@ -271,6 +269,7 @@ exists($$PWD/lib/autograder/*.cpp) {
     OTHER_FILES += $$files(res/autograder/*)
 
     !win32 {
+        LIBS += -lpthread
         copyToDestdir($$files($$PWD/res/autograder/*))
     }
     win32 {

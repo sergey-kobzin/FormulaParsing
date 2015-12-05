@@ -5,6 +5,14 @@
  * by student code on the console.
  * 
  * @author Marty Stepp
+ * @version 2015/05/28
+ * - tiny bug fix to exception stack trace printing format on Windows
+ * @version 2014/11/19
+ * - disabled SetThreadErrorMode to avoid compiler errors on Windows systems
+ * @version 2014/11/18
+ * - fixed minor bug with filtering out nested <> template args from stack traces
+ * @version 2014/11/14
+ * - fixed bug with SIGABRT handling in autograder mode (was muffling unit test failures)
  * @version 2014/11/12
  * - made printStackTrace function publicly available
  * - added top-level signal handler (for null-pointer derefs etc.)
@@ -33,12 +41,13 @@
 // uncomment the definition below to use an alternative 'signal stack'
 // which helps in handling stack overflow errors
 // (disabled because it currently breaks stack traces for other errors)
-// #define SHOULD_USE_SIGNAL_STACK
+//#define SHOULD_USE_SIGNAL_STACK
 
 namespace exceptions {
 // just some value that is not any existing signal
 #define SIGSTACK ((int) 0xdeadbeef)
 #define SIGUNKNOWN ((int) 0xcafebabe)
+#define SIGTIMEOUT ((int) 0xf00df00d)
 static const bool STACK_TRACE_SHOULD_FILTER = true;
 static const bool STACK_TRACE_SHOW_TOP_BOTTOM_BARS = false;
 static bool topLevelExceptionHandlerEnabled = false;
@@ -106,7 +115,7 @@ void setTopLevelExceptionHandlerEnabled(bool enabled) {
         // newly added uncaught signal handler
         // SetErrorMode(SEM_NOGPFAULTERRORBOX);
         SetErrorMode(SEM_FAILCRITICALERRORS);
-        SetThreadErrorMode(SEM_FAILCRITICALERRORS, NULL);
+        // SetThreadErrorMode(SEM_FAILCRITICALERRORS, NULL);
         SetUnhandledExceptionFilter(UnhandledException);
         // _invalid_parameter_handler newHandler;
         // newHandler = myInvalidParameterHandler;
@@ -133,6 +142,7 @@ static bool shouldFilterOutFromStackTrace(const std::string& function) {
             || function == "error"
             || function == "startupMain(int, char**)"
             || function.find("stacktrace::") != std::string::npos
+            || function.find("testing::") != std::string::npos
             || function.find("printStackTrace") != std::string::npos
             || function.find("stanfordCppLibSignalHandler") != std::string::npos
             || function.find("stanfordCppLibPosixSignalHandler") != std::string::npos
@@ -166,12 +176,36 @@ void printStackTrace(std::ostream& out) {
         // remove references to std:: namespace
         stringReplaceInPlace(entries[i].function, "std::", "");
         
+        // a few substitutions related to predefined types for simplicity
+        stringReplaceInPlace(entries[i].function, "basic_ostream", "ostream");
+        stringReplaceInPlace(entries[i].function, "basic_istream", "istream");
+        stringReplaceInPlace(entries[i].function, "basic_ofstream", "ofstream");
+        stringReplaceInPlace(entries[i].function, "basic_ifstream", "ifstream");
+        stringReplaceInPlace(entries[i].function, "basic_string", "string");
+        
         // remove template arguments
-        while (stringContains(entries[i].function, "<") && stringContains(entries[i].function, ">")) {
-            int lessThan = stringIndexOf(entries[i].function, "<");
-            int greaterThan = stringIndexOf(entries[i].function, ">", lessThan);
-            if (lessThan >= 0 && greaterThan > lessThan) {
+        // TODO: does not work well for nested templates
+        int lessThan = stringIndexOf(entries[i].function, "<");
+        while (lessThan >= 0) {
+            // see if there is a matching > for this <
+            int greaterThan = lessThan + 1;
+            int count = 1;
+            while (greaterThan < (int) entries[i].function.length()) {
+                if (entries[i].function[greaterThan] == '<') {
+                    count++;
+                } else if (entries[i].function[greaterThan] == '>') {
+                    count--;
+                    if (count == 0) {
+                        break;
+                    }
+                }
+                greaterThan++;
+            }
+            if (count == 0 && lessThan >= 0 && greaterThan > lessThan) {
                 entries[i].function.erase(lessThan, greaterThan - lessThan + 1);
+            } else {
+                // look for the next < in the string, if any, to see if it has a matching >
+                lessThan = stringIndexOf(entries[i].function, "<", lessThan + 1);
             }
         }
         
@@ -215,7 +249,10 @@ void printStackTrace(std::ostream& out) {
         
         std::string lineStr = "";
         if (!entry.lineStr.empty()) {
-            lineStr = entry.lineStr;
+            lineStr = trimEnd(entry.lineStr);
+            if (lineStr == "?? ??:0") {
+                lineStr = "(unknown)";
+            }
         } else if (entry.line > 0) {
             lineStr = "line " + integerToString(entry.line);
         }
@@ -296,10 +333,13 @@ static void signalHandlerEnable() {
 #endif // __APPLE__
     sigaction(SIGSEGV, &sig_action, NULL);
     sigaction(SIGFPE,  &sig_action, NULL);
-    // sigaction(SIGINT,  &sig_action, NULL);
     sigaction(SIGILL,  &sig_action, NULL);
     sigaction(SIGTERM, &sig_action, NULL);
+#ifdef SPL_AUTOGRADER_MODE
+    sigaction(SIGINT,  &sig_action, NULL);
+#else // not SPL_AUTOGRADER_MODE
     sigaction(SIGABRT, &sig_action, NULL);
+#endif // SPL_AUTOGRADER_MODE
     handled = true;
 #endif
 #endif // SHOULD_USE_SIGNAL_STACK
@@ -308,7 +348,11 @@ static void signalHandlerEnable() {
     SIGNALS_HANDLED.push_back(SIGSEGV);
     SIGNALS_HANDLED.push_back(SIGILL);
     SIGNALS_HANDLED.push_back(SIGFPE);
+#ifdef SPL_AUTOGRADER_MODE
+    SIGNALS_HANDLED.push_back(SIGINT);
+#else // not SPL_AUTOGRADER_MODE
     SIGNALS_HANDLED.push_back(SIGABRT);
+#endif // SPL_AUTOGRADER_MODE
     if (!handled) {
         for (int sig : SIGNALS_HANDLED) {
             signal(sig, stanfordCppLibSignalHandler);
@@ -339,6 +383,9 @@ static void stanfordCppLibSignalHandler(int sig) {
     } else if (sig == SIGFPE) {
         SIGNAL_KIND = "An arithmetic error";
         SIGNAL_DETAILS = "This typically happens when you divide by 0 or produce an overflow.";
+    } else if (sig == SIGINT) {
+        SIGNAL_KIND = "An interrupt error";
+        SIGNAL_DETAILS = "This typically happens when your code timed out because it was stuck in an infinite loop.";
     } else if (sig == SIGSTACK) {
         SIGNAL_KIND = "A stack overflow";
         SIGNAL_DETAILS = "This can happen when you have a function that calls itself infinitely.";
@@ -405,7 +452,7 @@ static void stanfordCppLibTerminateHandler() {
     } catch (bool b) {
         FILL_IN_EXCEPTION_TRACE(b, "A bool exception", boolToString(b));
     } catch (double d) {
-        FILL_IN_EXCEPTION_TRACE(d, "A bool exception", realToString(d));
+        FILL_IN_EXCEPTION_TRACE(d, "A double exception", realToString(d));
     } catch (...) {
         std::string ex = "Unknown";
         FILL_IN_EXCEPTION_TRACE(ex, "An exception", std::string());
@@ -413,3 +460,38 @@ static void stanfordCppLibTerminateHandler() {
 }
 
 } // namespace exceptions
+
+int getRecursionIndentLevel() {
+    // constructing the following object jumps into fancy code in call_stack_gcc/windows.cpp
+    // to rebuild the stack trace; implementation differs for each operating system
+    stacktrace::call_stack trace;
+    std::vector<stacktrace::entry> entries = trace.stack;
+    
+    std::string currentFunction = "";
+    int currentFunctionCount = 0;
+    for (size_t i = 0; i < entries.size(); ++i) {
+        // remove references to std:: namespace
+        if (exceptions::shouldFilterOutFromStackTrace(entries[i].function)
+                || entries[i].function.find("recursionIndent(") != std::string::npos
+                || entries[i].function.find("getRecursionIndentLevel(") != std::string::npos) {
+            continue;
+        } else if (currentFunction.empty()) {
+            currentFunction = entries[i].function;
+            currentFunctionCount = 1;
+        } else if (entries[i].function == currentFunction) {
+            currentFunctionCount++;
+        } else {
+            break;
+        }
+    }
+    return currentFunctionCount;
+}
+
+std::string recursionIndent(std::string indenter) {
+    int indent = getRecursionIndentLevel();
+    std::string result = "";
+    for (int i = 0; i < indent - 1; i++) {
+        result += indenter;
+    }
+    return result;
+}

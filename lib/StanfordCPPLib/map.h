@@ -4,6 +4,9 @@
  * This file exports the template class <code>Map</code>, which
  * maintains a collection of <i>key</i>-<i>value</i> pairs.
  * 
+ * @version 2015/07/05
+ * - using global hashing functions rather than global variables
+ * - fixed bug where string quotes would not show when map was printed
  * @version 2014/11/13
  * - added comparison operators <, >=, etc.
  * - added add() method as synonym for put()
@@ -922,8 +925,8 @@ bool Map<KeyType, ValueType>::containsKey(const KeyType& key) const {
 template <typename KeyType, typename ValueType>
 bool Map<KeyType, ValueType>::equals(const Map<KeyType, ValueType>& map2) const {
     if (this == &map2) {
-		return true;
-	}
+        return true;
+    }
     if (size() != map2.size()) {
         return false;
     }
@@ -1131,21 +1134,6 @@ bool Map<KeyType, ValueType>::operator >=(const Map& map2) const {
 }
 
 /*
- * Template hash function for maps.
- * Requires the key and value types in the Map to have a hashCode function.
- */
-template <typename K, typename V>
-int hashCode(const Map<K, V>& map) {
-    int code = HASH_SEED;
-    for (K k : map) {
-        code = HASH_MULTIPLIER * code + hashCode(k);
-        V v = map[k];
-        code = HASH_MULTIPLIER * code + hashCode(v);
-    }
-    return int(code & HASH_MASK);
-}
-
-/*
  * Implementation notes: << and >>
  * -------------------------------
  * The insertion and extraction operators use the template facilities in
@@ -1163,9 +1151,9 @@ std::ostream& operator <<(std::ostream& os,
         if (it != begin) {
             os << ", ";
         }
-        writeGenericValue(os, *it, false);
+        writeGenericValue(os, *it, true);
         os << ":";
-        writeGenericValue(os, map[*it], false);
+        writeGenericValue(os, map[*it], true);
         ++it;
     }
     return os << "}";
@@ -1202,6 +1190,47 @@ std::istream& operator >>(std::istream& is, Map<KeyType,ValueType>& map) {
         }
     }
     return is;
+}
+
+/*
+ * Template hash function for maps.
+ * Requires the key and value types in the Map to have a hashCode function.
+ */
+template <typename K, typename V>
+int hashCode(const Map<K, V>& map) {
+    int code = hashSeed();
+    for (K k : map) {
+        code = hashMultiplier() * code + hashCode(k);
+        V v = map[k];
+        code = hashMultiplier() * code + hashCode(v);
+    }
+    return int(code & hashMask());
+}
+
+/*
+ * Function: randomKey
+ * Usage: element = randomKey(map);
+ * --------------------------------
+ * Returns a randomly chosen key of the given map.
+ * Throws an error if the map is empty.
+ */
+template <typename K, typename V>
+const K& randomKey(const Map<K, V>& map) {
+    if (map.isEmpty()) {
+        error("randomElement: empty map was passed");
+    }
+    int index = randomInteger(0, map.size() - 1);
+    int i = 0;
+    for (const K& key : map) {
+        if (i == index) {
+            return key;
+        }
+        i++;
+    }
+    
+    // this code will never be reached
+    static Vector<K> v = map.keys();
+    return v[0];
 }
 
 #endif

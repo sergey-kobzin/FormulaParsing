@@ -4,6 +4,9 @@
  * This file exports the GBufferedImage class for per-pixel graphics.
  *
  * @author Marty Stepp
+ * @version 2015/08/12
+ * - added toGrid, fromGrid, createRgbPixel, getRed, getGreen, getBlue functions
+ * - perf.optimizations to per-pixel stuff; now almost tolerable speed
  * @version 2014/10/22
  * - added save, load methods
  * - added three-argument constructor (w, h, background)
@@ -17,6 +20,7 @@
 #define _gbufferedimage_h
 
 #include "grid.h"
+#include "ginteractors.h"
 #include "gobjects.h"
 #include "gtypes.h"
 
@@ -70,8 +74,37 @@
     Available since: 2014/08/04 version of C++ library
 </p>
  */
-class GBufferedImage : public GObject {
+class GBufferedImage : public GInteractor {
 public:
+    /*
+     * Creates a single RGB integer from the given R-G-B components from 0-255.
+     */
+    static int createRgbPixel(int red, int green, int blue);
+    
+    /*
+     * Extracts the red component from 0-255 of the given RGB integer.
+     * The red component comes from bits 16-23 of the integer.
+     */
+    static int getRed(int rgb);
+    
+    /*
+     * Extracts the green component from 0-255 of the given RGB integer.
+     * The red component comes from bits 8-15 of the integer.
+     */
+    static int getGreen(int rgb);
+    
+    /*
+     * Extracts the blue component from 0-255 of the given RGB integer.
+     * The red component comes from bits 0-7 of the integer.
+     */
+    static int getBlue(int rgb);
+    
+    /*
+     * Extracts the red, green, and blue components from 0-255
+     * of the given RGB integer, filling by reference.
+     */
+    static void getRedGreenBlue(int rgb, int& red, int& green, int& blue);
+    
     /*
      * Constructs an image with the specified location, size, and optional
      * background color.
@@ -82,14 +115,13 @@ public:
      * Throws an error if the given rgb value is invalid or out of range.
      */
     GBufferedImage();
-    GBufferedImage(double width, double height);
     GBufferedImage(double width, double height,
                    int rgbBackground = 0x000000);
     GBufferedImage(double x, double y, double width, double height,
                    int rgbBackground = 0x000000);
     GBufferedImage(double x, double y, double width, double height,
                    std::string rgbBackground);
-
+    
     /* Prototypes for the virtual methods */
     virtual GRectangle getBounds() const;
     virtual std::string getType() const;
@@ -136,6 +168,14 @@ public:
     void fillRegion(double x, double y, double width, double height, int rgb);
     void fillRegion(double x, double y, double width, double height,
                     std::string rgb);
+    
+    /*
+     * Replaces the entire contents of this image with the contents of the
+     * given grid of RGB pixel values.
+     * If this image is not the same size as the grid, the image is resized.
+     * Any existing contents of the image are lost.
+     */
+    void fromGrid(const Grid<int>& grid);
 
     /*
      * Returns the height of the image in pixels.
@@ -206,6 +246,16 @@ public:
      */
     void setRGB(double x, double y, int rgb);
     void setRGB(double x, double y, std::string rgb);
+    
+    /*
+     * Converts this image into a grid of RGB pixels.
+     * The grid's first index is a row or y-index, and its second index
+     * is the column or x-index.
+     * So for example, grid[y][x] returns the RGB int value at that pixel.
+     * The grid can either be returned or filled by reference.
+     */
+    Grid<int> toGrid() const;
+    void toGrid(Grid<int>& grid) const;
 
 private:
     double m_width;          // really, these are treated as integers

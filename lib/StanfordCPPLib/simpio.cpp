@@ -3,6 +3,9 @@
  * ----------------
  * This file implements the simpio.h interface.
  * 
+ * @version 2015/07/05
+ * - increased visibility of appendSpace function used by various IO
+ *   prompting functions (no longer static)
  * @version 2014/10/19
  * - alphabetized functions
  * - converted many funcs to take const string& rather than string for efficiency
@@ -11,6 +14,7 @@
  */
 
 #include "simpio.h"
+#include "strlib.h"
 #include <cctype>
 #include <fstream>
 #include <iostream>
@@ -23,8 +27,6 @@ static const std::string GETREAL_DEFAULT_PROMPT = "Enter a number: ";
 static const std::string GETREAL_DEFAULT_REPROMPT = "Illegal numeric format. Try again.";
 static const std::string GETYESORNO_DEFAULT_PROMPT = "Try again: ";
 static const std::string GETYESORNO_DEFAULT_REPROMPT = "Please type a word that starts with 'Y' or 'N'.";
-
-static void appendSpace(std::string& prompt);
 
 /*
  * Implementation notes: getInteger, getReal
@@ -43,8 +45,9 @@ int getInteger(const std::string& prompt,
         std::cout << promptCopy;
         std::string line;
         getline(std::cin, line);
+        trimInPlace(line);
         std::istringstream stream(line);
-        stream >> value >> std::ws;
+        stream >> value;
         if (!stream.fail() && stream.eof()) {
             break;
         }
@@ -93,8 +96,9 @@ double getReal(const std::string& prompt,
         std::cout << promptCopy;
         std::string line;
         getline(std::cin, line);
+        trimInPlace(line);
         std::istringstream stream(line);
-        stream >> value >> std::ws;
+        stream >> value;
         if (!stream.fail() && stream.eof()) {
             break;
         }
@@ -137,7 +141,7 @@ bool getYesOrNo(const std::string& prompt,
     return value;
 }
 
-static void appendSpace(std::string& prompt) {
+void appendSpace(std::string& prompt) {
     if (!prompt.empty() && !isspace(prompt[prompt.length() - 1])) {
         prompt += ' ';
     }

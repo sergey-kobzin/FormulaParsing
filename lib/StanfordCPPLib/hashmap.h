@@ -4,6 +4,12 @@
  * This file exports the <code>HashMap</code> class, which stores
  * a set of <i>key</i>-<i>value</i> pairs.
  * 
+ * @version 2015/07/05
+ * - using global hashing functions rather than global variables
+ * - fixed bug where string quotes would not show when map was printed
+ * @version 2015/06/19
+ * - fixed deepCopy code that was causing copies to have different hash code than
+ *   the original they were copied from (credit to SL Wen Zhang for finding the bug)
  * @version 2014/11/13
  * - added add() method as synonym for put()
  * - added template hashCode function
@@ -436,8 +442,27 @@ private:
     void deepCopy(const HashMap& src) {
         createBuckets(src.nBuckets);
         for (int i = 0; i < src.nBuckets; i++) {
+            // BUGFIX: was just calling put(), which reversed the chains;
+            // now deep-copy the chains exactly as they were to preserve hashcode
+            Cell* endOfChain = NULL;
             for (Cell* cp = src.buckets.get(i); cp != NULL; cp = cp->next) {
-                put(cp->key, cp->value);
+                // put(cp->key, cp->value);
+                
+                // copy the cell and put at end of bucket list
+                Cell* copy = new Cell();
+                copy->key = cp->key;
+                copy->value = cp->value;
+                copy->next = NULL;
+                if (endOfChain == NULL) {
+                    // first node in bucket
+                    buckets.set(i, copy);
+                } else {
+                    // not first node; put after existing node
+                    endOfChain->next = copy;
+                    endOfChain = copy;
+                }
+                endOfChain = copy;
+                numEntries++;
             }
         }
     }
@@ -807,21 +832,6 @@ bool HashMap<KeyType, ValueType>::operator !=(const HashMap& map2) const {
 }
 
 /*
- * Template hash function for hash maps.
- * Requires the key and value types in the HashMap to have a hashCode function.
- */
-template <typename K, typename V>
-int hashCode(const HashMap<K, V>& map) {
-    int code = HASH_SEED;
-    for (K k : map) {
-        code = HASH_MULTIPLIER * code + hashCode(k);
-        V v = map[k];
-        code = HASH_MULTIPLIER * code + hashCode(v);
-    }
-    return int(code & HASH_MASK);
-}
-
-/*
  * Implementation notes: << and >>
  * -------------------------------
  * The insertion and extraction operators use the template facilities in
@@ -839,9 +849,9 @@ std::ostream& operator <<(std::ostream& os,
         if (it != begin) {
             os << ", ";
         }
-        writeGenericValue(os, *it, false);
+        writeGenericValue(os, *it, true);
         os << ":";
-        writeGenericValue(os, map[*it], false);
+        writeGenericValue(os, map[*it], true);
         ++it;
     }
     return os << "}";
@@ -879,6 +889,47 @@ std::istream& operator >>(std::istream& is,
         }
     }
     return is;
+}
+
+/*
+ * Template hash function for hash maps.
+ * Requires the key and value types in the HashMap to have a hashCode function.
+ */
+template <typename K, typename V>
+int hashCode(const HashMap<K, V>& map) {
+    int code = hashSeed();
+    for (K k : map) {
+        code = hashMultiplier() * code + hashCode(k);
+        V v = map[k];
+        code = hashMultiplier() * code + hashCode(v);
+    }
+    return int(code & hashMask());
+}
+
+/*
+ * Function: randomKey
+ * Usage: element = randomKey(map);
+ * --------------------------------
+ * Returns a randomly chosen key of the given map.
+ * Throws an error if the map is empty.
+ */
+template <typename K, typename V>
+const K& randomKey(const HashMap<K, V>& map) {
+    if (map.isEmpty()) {
+        error("randomElement: empty hash map was passed");
+    }
+    int index = randomInteger(0, map.size() - 1);
+    int i = 0;
+    for (const K& key : map) {
+        if (i == index) {
+            return key;
+        }
+        i++;
+    }
+    
+    // this code will never be reached
+    static Vector<K> v = map.keys();
+    return v[0];
 }
 
 #endif

@@ -4,6 +4,8 @@
  * This file exports the <code>Vector</code> class, which provides an
  * efficient, safe, convenient replacement for the array type in C++.
  *
+ * @version 2015/07/05
+ * - using global hashing functions rather than global variables
  * @version 2014/11/13
  * - added comparison operators <, >=, etc.
  * - added template hashCode function
@@ -882,11 +884,27 @@ std::istream& operator >>(std::istream& is, Vector<ValueType>& vec) {
  */
 template <typename ValueType>
 int hashCode(const Vector<ValueType>& v) {
-    int code = HASH_SEED;
+    int code = hashSeed();
     for (ValueType element : v) {
-        code = HASH_MULTIPLIER * code + hashCode(element);
+        code = hashMultiplier() * code + hashCode(element);
     }
-    return (code & HASH_MASK);
+    return (code & hashMask());
+}
+
+/*
+ * Function: randomElement
+ * Usage: element = randomElement(v);
+ * ----------------------------------
+ * Returns a randomly chosen element of the given vector.
+ * Throws an error if the vector is empty.
+ */
+template <typename T>
+const T& randomElement(const Vector<T>& v) {
+    if (v.isEmpty()) {
+        error("randomElement: empty Vector was passed");
+    }
+    int index = randomInteger(0, v.size() - 1);
+    return v[index];
 }
 
 /*

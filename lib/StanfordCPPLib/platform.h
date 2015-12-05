@@ -5,6 +5,10 @@
  * the platform-specific parts of the StanfordCPPLib package.  This file is
  * logically part of the implementation and is not interesting to clients.
  *
+ * @version 2014/11/20
+ * - added gwindow clearCanvas method
+ * @version 2014/11/15
+ * - improvements to autograder unit test GUI
  * @version 2014/11/14
  * - added method to set unit test runtime in MS
  * @version 2014/10/31
@@ -41,10 +45,16 @@ public:
     void autograderinput_removeCategory(std::string name);
     void autograderinput_setVisible(bool value = true);
     void autograderunittest_addTest(const std::string& testName, const std::string& category = "", bool styleCheck = false);
+    bool autograderunittest_isChecked(const std::string& testName);
     void autograderunittest_clearTests(bool styleCheck = false);
+    void autograderunittest_clearTestResults(bool styleCheck = false);
+    void autograderunittest_setChecked(const std::string& testName, bool checked = true);
+    void autograderunittest_setTestCounts(int passCount, int testCount, bool styleCheck = false);
     void autograderunittest_setTestDetails(const std::string& testName, const std::string& details, bool styleCheck = false);
+    void autograderunittest_setTestingCompleted(bool completed = true, bool styleCheck = false);
     void autograderunittest_setTestResult(const std::string& testName, const std::string& result, bool styleCheck = false);
     void autograderunittest_setTestRuntime(const std::string& testName, int runtimeMS);
+    void autograderunittest_setVisible(bool visible = true, bool styleCheck = false);
     void autograderunittest_setWindowDescriptionText(const std::string& text, bool styleCheck = false);
     std::string cpplib_getCppLibraryVersion();
     std::string cpplib_getJavaBackEndVersion();
@@ -75,6 +85,7 @@ public:
     void gbufferedimage_resize(GObject* gobj, double width, double height, bool retain = true);
     std::string gbufferedimage_save(const GObject* const gobj, const std::string& filename);
     void gbufferedimage_setRGB(GObject* gobj, double x, double y, int rgb);
+    void gbufferedimage_updateAllPixels(GObject* gobj, const std::string& base64);
     void gbutton_constructor(GObject* gobj, std::string label);
     void gcheckbox_constructor(GObject* gobj, std::string label);
     bool gcheckbox_isSelected(GObject* gobj);
@@ -134,6 +145,9 @@ public:
     void goval_constructor(GObject* gobj, double width, double height);
     void gpolygon_addVertex(GObject* gobj, double x, double y);
     void gpolygon_constructor(GObject* gobj);
+    void gradiobutton_constructor(GObject* gobj, std::string label, std::string group);
+    bool gradiobutton_isSelected(GObject* gobj);
+    void gradiobutton_setSelected(GObject* gobj, bool state);
     void grect_constructor(GObject* gobj, double width, double height);
     void groundrect_constructor(GObject* gobj, double width, double height, double corner);
     void gslider_constructor(GObject* gobj, int min, int max, int value);
@@ -161,6 +175,7 @@ public:
     void gtimer_stop(const GTimer& timer);
     void gwindow_addToRegion(const GWindow& gw, GObject* gobj, std::string region);
     void gwindow_clear(const GWindow& gw);
+    void gwindow_clearCanvas(const GWindow& gw);
     void gwindow_close(const GWindow& gw);
     void gwindow_constructor(const GWindow& gw, double width, double height,
                              GObject* topCompound, bool visible = true);
@@ -193,12 +208,16 @@ public:
     void jbeconsole_clear();
     bool jbeconsole_isBlocked();
     void jbeconsole_minimize();
+    void jbeconsole_setCloseOperation(int value);
+    void jbeconsole_setErrorColor(const std::string& color);
     void jbeconsole_setExitProgramOnClose(bool value);
     void jbeconsole_setLocationSaved(bool value);
+    void jbeconsole_setOutputColor(const std::string& color);
     void jbeconsole_setFont(const std::string& font);
     void jbeconsole_setLocation(int x, int y);
     void jbeconsole_setSize(double width, double height);
     void jbeconsole_setTitle(const std::string& title);
+    void jbeconsole_setVisible(bool value);
     void jbeconsole_toFront();
     std::string os_getLastError();
     bool regex_match(std::string s, std::string regexp);

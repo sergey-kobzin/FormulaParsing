@@ -6,6 +6,10 @@
  * must be included in the source file that contains the <code>main</code>
  * method, although it may be included in other source files as well.
  * 
+ * @version 2015/06/20
+ * - added recursionIndent() function for pretty-printing indented recursive calls
+ * @version 2015/04/25
+ * - added methods to get/set console output color
  * @version 2014/11/13
  * - added setConsoleWindowTitle method
  * @version 2014/11/05
@@ -19,6 +23,13 @@
 #define _console_h
 
 #include <string>
+
+enum ConsoleCloseOperation {
+    CONSOLE_DO_NOTHING_ON_CLOSE = 0,
+    CONSOLE_HIDE_ON_CLOSE = 1,
+    CONSOLE_DISPOSE_ON_CLOSE = 2,
+    CONSOLE_EXIT_ON_CLOSE = 3
+};
 
 /*
  * Function: clearConsole
@@ -37,6 +48,15 @@ void clearConsole();
  * rather than actually clearing the console.
  */
 bool getConsoleClearEnabled();
+
+/*
+ * Function: setConsoleCloseOperation();
+ * Usage: setConsoleCloseOperation(op);
+ * ------------------------------------
+ * Returns what the console will do when the user hits its "close" button.
+ * By default, this is CONSOLE_HIDE_ON_CLOSE unless set otherwise.
+ */
+ConsoleCloseOperation getConsoleCloseOperation();
 
 /*
  * Function: getConsoleEcho
@@ -95,6 +115,14 @@ bool getConsoleSettingsLocked();
 void setConsoleClearEnabled(bool value);
 
 /*
+ * Function: setConsoleCloseOperation();
+ * Usage: setConsoleCloseOperation(op);
+ * ------------------------------------
+ * Sets what the console should do when the user hits its "close" button.
+ */
+void setConsoleCloseOperation(ConsoleCloseOperation op);
+
+/*
  * Function: setConsoleEcho
  * Usage: setConsoleEcho(true);
  * ----------------------------
@@ -104,6 +132,12 @@ void setConsoleClearEnabled(bool value);
  * and paste your console interaction into another window, it is useful.
  */
 void setConsoleEcho(bool echo);   // added by Marty
+
+/*
+ * Sets the color used to display text in the console window.
+ * The color string passed should be in a hex format such as "#ffa32f";
+ */
+void setConsoleErrorColor(const std::string& color);
 
 /*
  * Sets whether an event should be generated if the console
@@ -149,6 +183,12 @@ void setConsoleLocation(int x, int y);
  * restored between runs of the program.  Default false.
  */
 void setConsoleLocationSaved(bool value);
+
+/*
+ * Sets the color used to display text in the console window.
+ * The color string passed should be in a hex format such as "#ffa32f";
+ */
+void setConsoleOutputColor(const std::string& color);
 
 /*
  * Function: setConsolePrintExceptions
